@@ -1,64 +1,28 @@
 package main
 
 import (
-	"log"
-
 	"github.com/kmrhemant916/notification/rabbitmq"
 	"github.com/kmrhemant916/notification/utils"
 )
 
 const (
 	Config = "config/config.yaml"
+	BindingKey = "*.mail"
 )
 
 func main() {
-	var config utils.Config
-	c, err:= config.ReadConf(Config)
-    if err != nil {
-        panic(err)
-    }
-	rabbitmqConfig := c.Rabbitmq
-	conn, err := rabbitmq.Connection(rabbitmqConfig.Username, rabbitmqConfig.Password, rabbitmqConfig.Host, rabbitmqConfig.Port)
-	if err != nil {
-		panic(err)
-	}
+	rabbit := rabbitmq.Setup()
+	conn, err := rabbit.Connection()
+	utils.FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
-	ch, err := conn.Channel()
-	if err != nil {
-		panic(err)
-	}
+	ch, err := rabbit.DeclareChannel(conn)
+	utils.FailOnError(err, "Failed to open a channel")
 	defer ch.Close()
-	q, err := ch.QueueDeclare(
-		"mail", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
-	)
-	if err != nil {
-		panic(err)
-	}
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
-	if err != nil {
-		panic(err)
-	}
-	var forever chan struct{}
-
-	go func() {
-	  for d := range msgs {
-		log.Printf("Received a message: %s", d.Body)
-	  }
-	}()
-	
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+	err = rabbit.DeclareExchange(ch)
+	utils.FailOnError(err, "Failed to declare an exchange")
+	q, err := rabbit.DeclareQueue(ch)
+	utils.FailOnError(err, "Failed to declare a queue")
+	err = rabbit.DeclareQueueBind(ch, q, BindingKey, )
+	utils.FailOnError(err, "Failed to bind a queue")
+	rabbit.DeclareConsumer(q, ch)
 }

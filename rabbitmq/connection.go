@@ -6,12 +6,16 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func Connection(username string, password string, host string, port string) (*amqp.Connection, error) {
+const (
+	Config = "config/config.yaml"
+)
+
+func (r *Rabbitmq) Connection() (*amqp.Connection, error) {
     connectionString := fmt.Sprintf("amqp://%s:%s@%s:%s/",
-        username,
-        password,
-        host,
-        port,
+        r.Username,
+        r.Password,
+        r.Host,
+        r.Port,
     )
     conn, err := amqp.Dial(connectionString)
     if err != nil {

@@ -13,6 +13,10 @@ type Config struct {
 		Password string `yaml:"password"`
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
+        Exchange struct {
+            Name string `yaml:"name"`
+            Kind string `yaml:"kind"`
+        } `yaml:"exchange"`
 	} `yaml:"rabbitmq"`
 }
 
